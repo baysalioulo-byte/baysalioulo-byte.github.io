@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculateur de tâche enseignante</title>
+<style>
+:root{
+  --ink:#16212b; --muted:#5b6670; --line:#d9e0e6; --bg:#f5f7fa;
+  --card:#ffffff; --blue:#1f4e78; --blue2:#2f75b5; --soft:#eaf3fb;
+  --yellow:#fff4cc; --green:#e5f3df; --red:#b42318;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:Arial, Helvetica, sans-serif; color:var(--ink);
+  background:var(--bg); line-height:1.45;
+}
+.wrap{max-width:980px;margin:32px auto;padding:0 18px 50px}
+header{
+  background:linear-gradient(135deg,var(--blue),var(--blue2)); color:#fff;
+  border-radius:16px; padding:26px 28px; box-shadow:0 8px 24px rgba(31,78,120,.18)
+}
+header h1{margin:0 0 8px;font-size:28px}
+header p{margin:0;opacity:.95}
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:22px; margin-top:18px; box-shadow:0 4px 14px rgba(0,0,0,.05)
+}
+h2{font-size:20px;margin:0 0 16px;color:var(--blue)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
+@media(max-width:720px){.grid{grid-template-columns:1fr}}
+label{display:block;font-weight:700;margin-bottom:6px}
+input,select{
+  width:100%;padding:11px 12px;border:1px solid #bcc7d1;border-radius:9px;
+  font-size:16px;background:#fff
+}
+.inputbox{background:var(--yellow);padding:12px;border-radius:10px}
+.checkrow{display:flex;gap:10px;align-items:center;padding:10px 0}
+.checkrow input{width:auto}
+.note{
+  background:var(--soft);border-left:4px solid var(--blue2);padding:14px 16px;
+  border-radius:8px;margin-top:12px
+}
+.results{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px
+}
+@media(max-width:780px){.results{grid-template-columns:1fr}}
+.kpi{
+  background:var(--green);border:1px solid #bedbb4;border-radius:12px;
+  padding:16px
+}
+.kpi .label{font-size:13px;color:#36523a;font-weight:700}
+.kpi .value{font-size:25px;font-weight:800;margin-top:4px;color:#173a20}
+.detail{
+  margin-top:12px;border:1px solid var(--line);border-radius:12px;overflow:hidden
+}
+.step{padding:14px 16px;border-bottom:1px solid var(--line);background:#fff}
+.step:last-child{border-bottom:0}
+.step strong{color:var(--blue)}
+.math{
+  display:block;margin-top:7px;padding:9px 11px;background:#f7f9fb;
+  border-radius:8px;font-family:"Courier New",monospace;white-space:normal
+}
+.ref{font-size:14px;color:var(--muted)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+button{
+  border:0;border-radius:9px;padding:10px 16px;font-weight:700;cursor:pointer;font-size:15px
+}
+.primary{background:var(--blue);color:#fff}
+.secondary{background:#e9eef3;color:var(--ink)}
+.warn{color:var(--red);font-weight:700}
+.hidden{display:none}
+.small{font-size:13px;color:var(--muted)}
+@media print{
+  body{background:#fff}.actions{display:none}.card{box-shadow:none}.wrap{margin:0;max-width:none}
+  .inputbox{background:#fff4cc!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style>
+
+<style>
+html, body { width: 100%; overflow-x: hidden; }
+@media (max-width: 640px) {
+  .wrap { margin: 12px auto; padding: 0 10px 28px; }
+  header { padding: 18px 16px; border-radius: 12px; }
+  header h1 { font-size: 23px; line-height: 1.15; }
+  .card { padding: 15px; margin-top: 12px; border-radius: 12px; }
+  h2 { font-size: 18px; }
+  input, select { font-size: 16px; min-height: 46px; }
+  .kpi .value { font-size: 22px; }
+}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Calculateur de tâche enseignante</h1>
+  </header>
+
+  <section class="card">
+    <h2>1. Informations de l’enseignant</h2>
+    <div class="grid">
+      <div class="inputbox">
+        <label for="nom">Nom (facultatif)</label>
+        <input id="nom" type="text" >
+      </div>
+      <div class="inputbox">
+        <label for="echelon">Échelon</label>
+        <select id="echelon"></select>
+      </div>
+      <div class="inputbox">
+        <label for="periodes">Nombre total de périodes assignées / cycle de 9 jours</label>
+        <input id="periodes" type="number" min="0" step="0.1" value="">
+      </div>
+      <div class="inputbox">
+        <label>Salaire annuel sélectionné</label>
+        <input id="salaireAff" type="text" readonly>
+      </div>
+    </div>
+
+    <div class="checkrow">
+      <input id="retroOption" type="checkbox">
+      <label for="retroOption" style="margin:0">Calculer aussi une rétroactivité (optionnel)</label>
+    </div>
+
+    <div id="retroFields" class="hidden">
+      <div class="grid">
+        <div class="inputbox">
+          <label for="dateDebut">Date de début des périodes supplémentaires</label>
+          <input id="dateDebut" type="date" value="">
+        </div>
+        <div class="inputbox">
+          <label for="paiesCompletes">Nombre de paies complètes à régulariser</label>
+          <input id="paiesCompletes" type="number" min="0" step="1" value="">
+        </div>
+      </div>
+      <div class="checkrow">
+        <input id="paiePartielle" type="checkbox">
+        <label for="paiePartielle" style="margin:0">Inclure une première paie partielle</label>
+      </div>
+      <div id="partialFields" class="grid hidden">
+        <div class="inputbox">
+          <label for="joursConcernes">Jours ouvrables concernés dans la première paie</label>
+          <input id="joursConcernes" type="number" min="0" step="1" value="">
+        </div>
+        <div class="inputbox">
+          <label for="joursTotal">Nombre total de jours ouvrables dans cette paie</label>
+          <input id="joursTotal" type="number" min="1" step="1" value="">
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <strong>Référence utilisée :</strong> 24,6 périodes de 75 minutes par cycle de 9 jours.<br>
+      <span class="ref">Entente nationale 2023-2028 FSE, clause 8-6.03 A) 2) : 17 h 05 de cours/leçons et activités étudiantes au secondaire; clause 8-6.04 : ajustement proportionnel lorsque le cycle diffère de 5 jours.</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2. Résultats automatiques</h2>
+    <div id="warning" class="warn hidden"></div>
+    <div class="results">
+      <div class="kpi"><div class="label">Référence 100 %</div><div class="value">24,6 périodes</div></div>
+      <div class="kpi"><div class="label">Périodes en sus calculées automatiquement</div><div id="kpiExtraPeriods" class="value">—</div></div>
+      <div class="kpi"><div class="label">Dépassement</div><div id="kpiPct" class="value">—</div></div>
+      <div class="kpi"><div class="label">Supplément annuel</div><div id="kpiAnnual" class="value">—</div></div>
+      <div class="kpi"><div class="label">Supplément / paie</div><div id="kpiPay" class="value">—</div></div>
+      <div class="kpi"><div class="label">Taux horaire équivalent</div><div id="kpiHourly" class="value">—</div></div>
+      <div id="retroKpi" class="kpi hidden"><div class="label">Rétroactivité estimée</div><div id="kpiRetro" class="value">—</div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3. Calculs détaillés</h2>
+    <div id="details" class="detail"></div>
+    <div class="actions">
+      <button class="primary" onclick="window.print()">Imprimer / Enregistrer en PDF</button>
+      <button class="secondary" onclick="resetForm()">Réinitialiser</button>
+    </div>
+    <p class="small">Les montants sont des estimations brutes basées sur 26 paies/an et 35 h/semaine (1 820 h/an), sans majoration du taux pour les périodes supplémentaires. La rétroactivité est facultative.</p>
+  </section>
+</div>
+
+<script>
+const referencePeriods = 24.6;
+const periodHours = 1.25;
+const annualHours = 1820;
+const paysPerYear = 26;
+
+const salaryScale = {
+  1:54119, 2:57734, 3:63142, 4:65633, 5:68222, 6:70912, 7:73708, 8:76614,
+  9:79637, 10:82776, 11:84580, 12:88176, 13:91924, 14:95829, 15:99901, 16:105432
+};
+
+const el = id => document.getElementById(id);
+const money = n => new Intl.NumberFormat('fr-CA',{style:'currency',currency:'CAD',minimumFractionDigits:2}).format(n);
+const pct = n => new Intl.NumberFormat('fr-CA',{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+const num = n => new Intl.NumberFormat('fr-CA',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
+
+function init(){
+  const s = el('echelon');
+  const blank=document.createElement('option'); blank.value=''; blank.textContent='Choisir un échelon'; blank.selected=true; blank.disabled=true; s.appendChild(blank);
+  Object.keys(salaryScale).forEach(k=>{
+    const o=document.createElement('option'); o.value=k; o.textContent=`Échelon ${k}`;
+    
+    s.appendChild(o);
+  });
+  document.querySelectorAll('input,select').forEach(x=>x.addEventListener('input',calculate));
+  el('retroOption').addEventListener('change',()=>{
+    el('retroFields').classList.toggle('hidden', !el('retroOption').checked);
+    el('retroKpi').classList.toggle('hidden', !el('retroOption').checked);
+    calculate();
+  });
+  el('paiePartielle').addEventListener('change',()=>{
+    el('partialFields').classList.toggle('hidden', !el('paiePartielle').checked);
+    calculate();
+  });
+  calculate();
+}
+
+function calculate(){
+  const echelon = Number(el('echelon').value);
+  const salary = salaryScale[echelon] || 0;
+  const periodsRaw = el('periodes').value;
+  const periods = periodsRaw === "" ? null : Number(periodsRaw);
+
+  el('salaireAff').value = salary ? money(salary) : "";
+
+  const retroEnabled = el('retroOption').checked;
+  const fullPays = retroEnabled ? Math.max(0, Number(el('paiesCompletes').value)||0) : 0;
+  const partial = retroEnabled && el('paiePartielle').checked;
+  const days = partial ? Math.max(0, Number(el('joursConcernes').value)||0) : 0;
+  const totalDays = partial ? Math.max(1, Number(el('joursTotal').value)||1) : 1;
+
+  const warning = el('warning');
+
+  // Si les renseignements de base ne sont pas encore saisis.
+  if(!salary || periods === null || Number.isNaN(periods)){
+    warning.textContent = "Choisissez un échelon et saisissez le nombre total de périodes assignées pour afficher le calcul.";
+    warning.classList.remove('hidden');
+    ['kpiExtraPeriods','kpiPct','kpiAnnual','kpiPay','kpiHourly','kpiRetro'].forEach(id => el(id).textContent='—');
+    el('details').innerHTML = `
+      <div class="step">
+        <strong>Principe de calcul</strong>
+        <span class="math">Périodes en sus = nombre total de périodes saisies − 24,6</span>
+      </div>
+      <div class="step">
+        <strong>Référence 24,6</strong>
+        <span class="math">17 h 05 × 9/5 = 30 h 45 par cycle de 9 jours<br>
+        30 h 45 = 30,75 h<br>
+        30,75 h ÷ 1,25 h = <b>24,6 périodes</b></span>
+      </div>`;
+    return;
+  }
+
+  const excessPeriods = Math.max(0, periods-referencePeriods);
+  const excessPct = referencePeriods ? excessPeriods/referencePeriods : 0;
+  const equivalentAnnual = salary * (periods/referencePeriods);
+  const annualSupplement = Math.max(0, equivalentAnnual-salary);
+  const hourlyBase = salary/annualHours;
+  const hourlyEq = equivalentAnnual/annualHours;
+  const paySupplement = annualSupplement/paysPerYear;
+  const partialAmount = partial ? paySupplement*(days/totalDays) : 0;
+  const retro = retroEnabled ? fullPays*paySupplement + partialAmount : 0;
+
+  if(periods < referencePeriods){
+    warning.textContent = "Le nombre total de périodes saisi est inférieur à la référence de 24,6; aucun supplément n’est calculé.";
+    warning.classList.remove('hidden');
+  } else {
+    warning.classList.add('hidden');
+  }
+
+  el('kpiExtraPeriods').textContent = num(excessPeriods);
+  el('kpiPct').textContent = pct(excessPct);
+  el('kpiAnnual').textContent = money(annualSupplement);
+  el('kpiPay').textContent = money(paySupplement);
+  el('kpiHourly').textContent = money(hourlyEq) + "/h";
+  if(retroEnabled) el('kpiRetro').textContent = money(retro);
+
+  const dateTxt = retroEnabled && el('dateDebut').value
+    ? new Date(el('dateDebut').value+"T00:00:00").toLocaleDateString('fr-CA')
+    : "non précisée";
+  const name = el('nom').value.trim();
+  const who = name ? `<div class="step"><strong>Enseignant :</strong> ${name}</div>` : "";
+
+  let retroHtml = "";
+  if(retroEnabled){
+    retroHtml = `
+      <div class="step">
+        <strong>G. Rétroactivité (optionnelle)</strong>
+        <span class="math">
+          ${fullPays} paie(s) complète(s) × ${money(paySupplement)}
+          = <b>${money(fullPays*paySupplement)}</b><br>
+          ${partial
+            ? `Première paie partielle : ${money(paySupplement)} × (${days} ÷ ${totalDays}) = <b>${money(partialAmount)}</b><br>`
+            : `Première paie partielle : <b>non incluse</b><br>`}
+          Rétroactivité totale estimée = <b>${money(retro)}</b><br>
+          Date de début saisie : ${dateTxt}
+        </span>
+      </div>`;
+  }
+
+  el('details').innerHTML = who + `
+    <div class="step">
+      <strong>A. Comment obtient-on 24,6 périodes ?</strong>
+      <span class="math">17 h 05 × 9/5 = 30 h 45 par cycle de 9 jours<br>
+      30 h 45 = 30,75 h<br>
+      30,75 h ÷ 1,25 h par période = <b>24,6 périodes</b></span>
+    </div>
+    <div class="step">
+      <strong>B. Périodes en sus – calcul automatique</strong>
+      <span class="math">${num(periods)} − 24,60 = <b>${num(excessPeriods)} période(s) en sus</b><br>
+      ${num(excessPeriods)} ÷ 24,60 = <b>${pct(excessPct)}</b></span>
+    </div>
+    <div class="step">
+      <strong>C. Salaire annuel équivalent</strong>
+      <span class="math">${money(salary)} × (${num(periods)} ÷ 24,60) = <b>${money(equivalentAnnual)}</b></span>
+    </div>
+    <div class="step">
+      <strong>D. Supplément annuel</strong>
+      <span class="math">${money(equivalentAnnual)} − ${money(salary)} = <b>${money(annualSupplement)}</b></span>
+    </div>
+    <div class="step">
+      <strong>E. Taux horaire équivalent</strong>
+      <span class="math">Taux régulier : ${money(salary)} ÷ 1 820 h = <b>${money(hourlyBase)}/h</b><br>
+      Avec ${num(periods)} périodes : ${money(equivalentAnnual)} ÷ 1 820 h = <b>${money(hourlyEq)}/h</b></span>
+    </div>
+    <div class="step">
+      <strong>F. Supplément par paie complète</strong>
+      <span class="math">${money(annualSupplement)} ÷ 26 = <b>${money(paySupplement)}</b></span>
+    </div>
+    ${retroHtml}
+  `;
+}
+function resetForm(){
+  el('nom').value="";
+  el('echelon').value="";
+  el('periodes').value="";
+  el('salaireAff').value="";
+  el('retroOption').checked=false;
+  el('retroFields').classList.add('hidden');
+  el('retroKpi').classList.add('hidden');
+  el('dateDebut').value="";
+  el('paiesCompletes').value="";
+  el('paiePartielle').checked=false;
+  el('partialFields').classList.add('hidden');
+  el('joursConcernes').value="";
+  el('joursTotal').value="";
+  calculate();
+}
+
+init();
+</script>
+</body>
+</html>
